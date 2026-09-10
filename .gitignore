@@ -1,0 +1,15 @@
+# 원본 데이터
+data/
+*.csv
+*.xlsx
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# 환경/비밀정보
+.env
+.streamlit/secrets.toml

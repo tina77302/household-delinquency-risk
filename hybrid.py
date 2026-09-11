@@ -3,13 +3,94 @@
 # Interactive Research Presentation
 # OPENING → MODEL LAB → EXPLAIN
 # ============================================================
-
 import streamlit as st
 import streamlit.components.v1 as components
 import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
+import time
 from pathlib import Path
+
+
+# ============================================================
+# GRAPH ANIMATION
+# ============================================================
+
+def animated_gain_card(value, steps=20, delay=0.025):
+    placeholder = st.empty()
+
+    for step in range(1, steps + 1):
+        progress = step / steps
+        progress = 1 - (1 - progress) ** 3
+        current_value = value * progress
+
+        placeholder.markdown(
+            f"""
+            <div style="
+                font-size:76px;
+                font-weight:900;
+                line-height:.95;
+                letter-spacing:-4px;
+                color:#FF704D;
+                text-shadow:0 0 32px rgba(255,112,77,.34);
+                margin:3px 0 8px 0;
+            ">
+                {current_value:.2f}%
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        time.sleep(delay)
+
+
+def animated_bar_chart(fig, key, steps=14, delay=0.035):
+    """Render a Plotly bar chart with bars growing from zero to final values."""
+    placeholder = st.empty()
+    final_fig = go.Figure(fig)
+
+    for step in range(1, steps + 1):
+        progress = step / steps
+        progress = 1 - (1 - progress) ** 3
+        frame = go.Figure(final_fig)
+
+        for i, trace in enumerate(frame.data):
+            original = final_fig.data[i]
+
+            if getattr(trace, "type", None) != "bar":
+                continue
+
+            if getattr(trace, "orientation", None) == "h":
+                values = list(original.x)
+                trace.x = [
+                    float(v) * progress if v is not None else 0
+                    for v in values
+                ]
+            else:
+                values = list(original.y)
+                trace.y = [
+                    float(v) * progress if v is not None else 0
+                    for v in values
+                ]
+
+            # Keep value labels hidden while the bars are moving.
+            if step < steps:
+                trace.text = None
+
+        placeholder.plotly_chart(
+            frame,
+            use_container_width=True,
+            key=f"{key}_{step}",
+            config={"displaylogo": False}
+        )
+        time.sleep(delay)
+
+    placeholder.plotly_chart(
+        final_fig,
+        use_container_width=True,
+        key=f"{key}_final",
+        config={"displaylogo": False}
+    )
 
 
 # ============================================================
@@ -596,8 +677,294 @@ hr {
     }
 }
 
+
+
+/* ==========================================================
+   EVERY GRAPH / TABLE · UNIVERSAL VISUAL MOTION
+   ========================================================== */
+
+/* Plotly titles, legends, axes come in after the plot itself */
+[data-testid="stPlotlyChart"] .gtitle,
+[data-testid="stPlotlyChart"] .legend,
+[data-testid="stPlotlyChart"] .infolayer,
+[data-testid="stPlotlyChart"] .annotation {
+    opacity:0;
+    animation:hriPlotTextIn .55s .62s ease forwards;
+}
+
+/* Bars: fade + slight rise, preserving their true geometry */
+[data-testid="stPlotlyChart"] .barlayer .trace {
+    opacity:0;
+    animation:hriTraceRise .72s .34s cubic-bezier(.16,.84,.24,1) forwards;
+}
+[data-testid="stPlotlyChart"] .barlayer .trace:nth-child(2){animation-delay:.44s}
+[data-testid="stPlotlyChart"] .barlayer .trace:nth-child(3){animation-delay:.54s}
+[data-testid="stPlotlyChart"] .barlayer .trace:nth-child(4){animation-delay:.64s}
+
+/* Scatter/line geometry must remain untouched.
+   SVG transforms on Plotly trace/point nodes can move markers away from their
+   data coordinates. Motion is applied to the chart container instead. */
+[data-testid="stPlotlyChart"] .scatterlayer .trace,
+[data-testid="stPlotlyChart"] .scatterlayer path.point,
+[data-testid="stPlotlyChart"] .scatterlayer path.js-line {
+    opacity:1;
+    animation:none;
+}
+
+/* Plotly table / heatmap / image-like layers */
+[data-testid="stPlotlyChart"] .table,
+[data-testid="stPlotlyChart"] .heatmaplayer,
+[data-testid="stPlotlyChart"] .imagelayer {
+    opacity:0;
+    animation:hriTablePlotIn .78s .32s cubic-bezier(.16,.84,.24,1) forwards;
+}
+
+/* Axis tick labels are delayed slightly */
+[data-testid="stPlotlyChart"] .xtick,
+[data-testid="stPlotlyChart"] .ytick {
+    opacity:0;
+    animation:hriPlotTextIn .42s .70s ease forwards;
+}
+
+/* Plotly hover remains responsive and visually alive */
+[data-testid="stPlotlyChart"] .hoverlayer {
+    transition:opacity .15s ease;
+}
+
+/* Native Streamlit tables if added later */
+[data-testid="stTable"],
+[data-testid="stDataFrame"] {
+    opacity:0;
+    animation:hriTableReveal .82s .18s cubic-bezier(.16,.84,.24,1) forwards;
+    transition:transform .20s ease, filter .20s ease;
+}
+[data-testid="stTable"]:hover,
+[data-testid="stDataFrame"]:hover {
+    transform:translateY(-2px);
+    filter:brightness(1.025);
+}
+
+/* Images / HTML visual blocks also enter with the same language */
+[data-testid="stImage"],
+[data-testid="stHtml"] {
+    animation:hriCardIn .66s .10s cubic-bezier(.16,.84,.24,1) both;
+}
+
+/* Every successive chart on a page gets a small stagger */
+[data-testid="stPlotlyChart"]:nth-of-type(2){animation-delay:.18s}
+[data-testid="stPlotlyChart"]:nth-of-type(3){animation-delay:.24s}
+[data-testid="stPlotlyChart"]:nth-of-type(4){animation-delay:.30s}
+
+/* Keyframes */
+@keyframes hriTraceRise {
+    0%   {opacity:0; transform:translateY(9px)}
+    100% {opacity:1; transform:translateY(0)}
+}
+@keyframes hriPointPop {
+    0%   {opacity:0; transform:scale(.45)}
+    70%  {opacity:1; transform:scale(1.08)}
+    100% {opacity:1; transform:scale(1)}
+}
+@keyframes hriLineGlow {
+    0%   {opacity:.10; filter:drop-shadow(0 0 0 rgba(50,200,255,0))}
+    55%  {opacity:1; filter:drop-shadow(0 0 5px rgba(50,200,255,.32))}
+    100% {opacity:1; filter:drop-shadow(0 0 0 rgba(50,200,255,0))}
+}
+@keyframes hriTablePlotIn {
+    0%   {opacity:0; transform:translateY(8px)}
+    100% {opacity:1; transform:translateY(0)}
+}
+@keyframes hriPlotTextIn {
+    from {opacity:0; transform:translateY(4px)}
+    to   {opacity:1; transform:translateY(0)}
+}
+
 </style>
 """, unsafe_allow_html=True)
+
+
+
+# ============================================================
+# GLOBAL MOTION SYSTEM · PRESENTATION SAFE
+# ============================================================
+
+st.markdown("""
+<style>
+
+/* ==========================================================
+   HRI MOTION SYSTEM — visible on presentation, still restrained
+   ========================================================== */
+
+@keyframes hriTitleIn {
+  0%   {opacity:0; transform:translateY(20px); filter:blur(5px);}
+  100% {opacity:1; transform:translateY(0); filter:blur(0);}
+}
+@keyframes hriCardIn {
+  0%   {opacity:0; transform:translateY(18px) scale(.975);}
+  100% {opacity:1; transform:translateY(0) scale(1);}
+}
+@keyframes hriChartReveal {
+  0%   {opacity:0; transform:translateY(12px); clip-path:inset(0 100% 0 0);}
+  35%  {opacity:1;}
+  100% {opacity:1; transform:translateY(0); clip-path:inset(0 0 0 0);}
+}
+@keyframes hriTableReveal {
+  0%   {opacity:0; transform:translateY(10px); clip-path:inset(0 0 100% 0);}
+  100% {opacity:1; transform:translateY(0); clip-path:inset(0 0 0 0);}
+}
+@keyframes hriPulse {
+  0%,100% {box-shadow:0 0 0 rgba(67,133,255,0);}
+  50% {box-shadow:0 0 26px rgba(67,133,255,.18);}
+}
+@keyframes hriAccentSweep {
+  0% {background-position:200% 0;}
+  100% {background-position:-200% 0;}
+}
+
+/* Page headings */
+[data-testid="stMainBlockContainer"] h1,
+[data-testid="stMainBlockContainer"] h2,
+[data-testid="stMainBlockContainer"] h3 {
+  animation:hriTitleIn .72s cubic-bezier(.16,.84,.24,1) both;
+}
+
+/* KPI cards — visible stagger */
+[data-testid="stMetric"] {
+  opacity:0;
+  animation:hriCardIn .68s cubic-bezier(.16,.84,.24,1) forwards;
+  transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+[data-testid="column"]:nth-child(1) [data-testid="stMetric"] {animation-delay:.05s}
+[data-testid="column"]:nth-child(2) [data-testid="stMetric"] {animation-delay:.14s}
+[data-testid="column"]:nth-child(3) [data-testid="stMetric"] {animation-delay:.23s}
+[data-testid="column"]:nth-child(4) [data-testid="stMetric"] {animation-delay:.32s}
+[data-testid="stMetric"]:hover {
+  transform:translateY(-5px) scale(1.015);
+  box-shadow:0 16px 34px rgba(67,133,255,.16);
+}
+
+/* Plotly: obvious left→right reveal on page/section render */
+[data-testid="stPlotlyChart"] {
+  opacity:0;
+  animation:hriChartReveal 1.05s cubic-bezier(.16,.84,.24,1) .12s forwards;
+  transform-origin:left center;
+  transition:transform .24s ease, filter .24s ease;
+}
+[data-testid="stPlotlyChart"]:hover {
+  transform:translateY(-3px);
+  filter:brightness(1.06);
+}
+
+/* Tables reveal vertically */
+[data-testid="stDataFrame"] {
+  opacity:0;
+  animation:hriTableReveal .85s cubic-bezier(.16,.84,.24,1) .12s forwards;
+}
+
+/* Cards / bordered containers */
+[data-testid="stVerticalBlockBorderWrapper"] {
+  opacity:0;
+  animation:hriCardIn .68s cubic-bezier(.16,.84,.24,1) .10s forwards;
+  transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+  transform:translateY(-4px);
+  box-shadow:0 15px 34px rgba(50,200,255,.11);
+}
+
+/* Inputs and buttons */
+[data-testid="stSelectbox"],
+[data-testid="stSegmentedControl"] {
+  animation:hriCardIn .60s cubic-bezier(.16,.84,.24,1) both;
+}
+.stButton > button {
+  transition:transform .18s ease, box-shadow .18s ease,
+             border-color .18s ease, background .18s ease !important;
+}
+.stButton > button:hover {
+  transform:translateY(-3px);
+  box-shadow:0 10px 28px rgba(67,133,255,.20);
+}
+
+/* Important blue/orange emphasis gets a very subtle living glow */
+[data-testid="stMainBlockContainer"] strong {
+  text-shadow:0 0 18px rgba(67,133,255,.07);
+}
+
+/* accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after {
+    animation-duration:.001ms !important;
+    animation-delay:0ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+  [data-testid="stPlotlyChart"],
+  [data-testid="stMetric"],
+  [data-testid="stDataFrame"],
+  [data-testid="stVerticalBlockBorderWrapper"] {
+    opacity:1 !important;
+    clip-path:none !important;
+    transform:none !important;
+  }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+def apply_motion(fig, duration=850):
+    """Apply consistent, restrained Plotly transition behavior."""
+    try:
+        fig.update_layout(
+            transition=dict(
+                duration=duration,
+                easing="cubic-in-out"
+            )
+        )
+    except Exception:
+        pass
+    return fig
+
+def motion_signal(label="LIVE ANALYTICS"):
+    st.markdown(
+        f"""
+        <div class="hri-motion-signal">
+            <span class="hri-motion-dot"></span>
+            <span>{label}</span>
+            <span class="hri-motion-line"></span>
+        </div>
+        <style>
+        .hri-motion-signal {{
+            display:flex;align-items:center;gap:8px;
+            margin:2px 0 12px 0;
+            color:#6F8FAE;font-size:9px;font-weight:800;letter-spacing:.75px;
+            opacity:0;animation:hriCardIn .65s .18s ease forwards;
+        }}
+        .hri-motion-dot {{
+            width:6px;height:6px;border-radius:50%;
+            background:#32C8FF;
+            box-shadow:0 0 0 rgba(50,200,255,0);
+            animation:hriSignalPulse 1.8s ease-in-out infinite;
+        }}
+        .hri-motion-line {{
+            height:1px;flex:1;max-width:150px;
+            background:linear-gradient(90deg,#4385FF,#32C8FF,transparent);
+            background-size:200% 100%;
+            animation:hriSignalSweep 2.6s linear infinite;
+        }}
+        @keyframes hriSignalPulse {{
+            0%,100%{{box-shadow:0 0 0 rgba(50,200,255,0)}}
+            50%{{box-shadow:0 0 14px rgba(50,200,255,.75)}}
+        }}
+        @keyframes hriSignalSweep {{
+            from{{background-position:100% 0}}
+            to{{background-position:-100% 0}}
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 
 # ============================================================
@@ -627,7 +994,15 @@ with st.sidebar:
 
 
     if st.button(
-        "02   MODEL LAB",
+        "02   DATA & VARIABLES",
+        use_container_width=True
+    ):
+        st.session_state.page = "DATA"
+        st.rerun()
+
+
+    if st.button(
+        "03   MODEL LAB",
         use_container_width=True
     ):
         st.session_state.page = "MODEL"
@@ -635,7 +1010,7 @@ with st.sidebar:
 
 
     if st.button(
-        "03   EXPLAIN",
+        "04   EXPLAIN",
         use_container_width=True
     ):
         st.session_state.page = "EXPLAIN"
@@ -643,21 +1018,21 @@ with st.sidebar:
 
 
     if st.button(
-        "04   PROFILE",
+        "05   PROFILE",
         use_container_width=True
     ):
         st.session_state.page = "PROFILE"
         st.rerun()
 
     if st.button(
-        "05   VALIDATE",
+        "06   VALIDATE",
         use_container_width=True
     ):
         st.session_state.page = "VALIDATE"
         st.rerun()
 
     if st.button(
-        "06   SCREEN",
+        "07   SCREEN",
         use_container_width=True
     ):
         st.session_state.page = "SCREEN"
@@ -1698,7 +2073,7 @@ setTimeout(
 
 
         st.plotly_chart(
-            fig,
+        apply_motion(fig),
             use_container_width=True,
 
             config={
@@ -1784,10 +2159,10 @@ setTimeout(
     with next_col:
 
         if st.button(
-            "MODEL LAB  →",
+            "DATA & VARIABLES  →",
             use_container_width=True
         ):
-            st.session_state.page = "MODEL"
+            st.session_state.page = "DATA"
             st.rerun()
 
 
@@ -1795,7 +2170,498 @@ setTimeout(
 # 06. MODEL LAB
 # ============================================================
 
+
+# ============================================================
+# 06. DATA & VARIABLES · TEAM PART
+# ============================================================
+
+elif st.session_state.page == "DATA":
+
+    motion_signal("DATA ARCHITECTURE · LIVE")
+    st.caption("HOVER · SELECT · ZOOM  |  주요 시각화는 진입·선택 시 부드럽게 반응합니다.")
+
+    st.markdown(":blue[**02 / DATA ARCHITECTURE**]")
+    st.markdown("## 데이터 구성과 설명변수")
+    st.caption(
+        "MICRO PANEL DATA · SAMPLE STRUCTURE · VARIABLE DIAGNOSTICS · EVALUATION METRICS"
+    )
+    st.write("")
+
+    # ========================================================
+    # 01 · ANNUAL SAMPLE STRUCTURE
+    # ========================================================
+    st.markdown(":blue[**01 · ANNUAL SAMPLE STRUCTURE**]")
+    st.markdown("### 연도별 표본은 어떻게 구성되었는가?")
+    st.write(
+        "가계금융복지조사의 연도별 표본에서 금융부채 보유가구와 "
+        "30일 이상 장기연체가구의 규모를 확인했습니다."
+    )
+
+    sample_df = pd.DataFrame({
+        "연도": ["2021", "2022", "2023", "2024"],
+        "총 가구": [13760, 13648, 13828, 14078],
+        "금융부채 가구": [7043, 6809, 6702, 6607],
+        "30D+ 연체가구": [217, 205, 183, 173],
+        "연체율": [3.08, 3.01, 2.73, 2.62],
+    })
+
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.metric("DEV WINDOW", "2021–2023", "MODEL DEVELOPMENT")
+    with k2:
+        st.metric("OOT INPUT", "2024", "→ 2025 TARGET")
+    with k3:
+        st.metric("2024 DEBT SAMPLE", "6,607", "금융부채 보유가구")
+    with k4:
+        st.metric("2024 30D+ RATE", "2.62%", "173 households")
+
+    st.write("")
+
+    trend_col, table_col = st.columns([1.08, .92], gap="large")
+
+    with trend_col:
+        fig_sample = go.Figure()
+
+        fig_sample.add_trace(
+            go.Scatter(
+                x=sample_df["연도"],
+                y=sample_df["금융부채 가구"],
+                mode="lines+markers",
+                name="금융부채 가구",
+                line=dict(color="#4385FF", width=3),
+                marker=dict(size=9, color="#4385FF"),
+                hovertemplate=(
+                    "<b>%{x}년</b><br>"
+                    "금융부채 가구 %{y:,}가구"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+        # 연체율은 시각적 추세 비교를 위해 보조축 사용
+        fig_sample.add_trace(
+            go.Scatter(
+                x=sample_df["연도"],
+                y=sample_df["연체율"],
+                mode="lines+markers",
+                name="30D+ 연체율",
+                yaxis="y2",
+                line=dict(color="#FF704D", width=3),
+                marker=dict(size=10, color="#FF704D"),
+                hovertemplate=(
+                    "<b>%{x}년</b><br>"
+                    "30D+ 연체율 %{y:.2f}%"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+        fig_sample.update_layout(
+            height=390,
+            title=dict(
+                text=(
+                    "<b>Annual Sample Signal</b><br>"
+                    "<span style='font-size:10px;'>"
+                    "FINANCIAL-DEBT HOUSEHOLDS × 30D+ DELINQUENCY RATE"
+                    "</span>"
+                ),
+                x=.01,
+                font=dict(size=16, color="#F7FAFF"),
+            ),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(7,22,39,.38)",
+            margin=dict(l=10, r=55, t=72, b=40),
+            xaxis=dict(
+                showgrid=False,
+                tickfont=dict(color="#A8BED4"),
+            ),
+            yaxis=dict(
+                range=[6200, 7300],
+                gridcolor="rgba(130,160,200,.10)",
+                zeroline=False,
+                tickfont=dict(color="#91A6BF"),
+                title=dict(text="금융부채 가구", font=dict(color="#91A6BF")),
+            ),
+            yaxis2=dict(
+                overlaying="y",
+                side="right",
+                range=[2.4, 3.2],
+                showgrid=False,
+                tickfont=dict(color="#FF9E87"),
+                title=dict(text="30D+ 연체율 (%)", font=dict(color="#FF9E87")),
+            ),
+            legend=dict(
+                orientation="h",
+                x=.01,
+                y=1.03,
+                font=dict(size=10, color="#C5D3E2"),
+                bgcolor="rgba(0,0,0,0)",
+            ),
+            hoverlabel=dict(
+                bgcolor="#0A192B",
+                bordercolor="#4385FF",
+                font_color="#FFFFFF",
+            ),
+        )
+
+        st.plotly_chart(
+        apply_motion(fig_sample),
+            width="stretch",
+            config={"displaylogo": False, "displayModeBar": False},
+        )
+
+    with table_col:
+        fig_sample_table = go.Figure(
+            data=[
+                go.Table(
+                    columnwidth=[.7, 1.05, 1.15, 1.15, .8],
+                    header=dict(
+                        values=[
+                            "<b>YEAR</b>",
+                            "<b>전체 표본</b>",
+                            "<b>금융부채 가구</b>",
+                            "<b>30D+ 연체</b>",
+                            "<b>RATE</b>",
+                        ],
+                        fill_color="#123A61",
+                        line_color="rgba(90,165,230,.38)",
+                        font=dict(color="#DDEEFF", size=11),
+                        align=["left", "right", "right", "right", "right"],
+                        height=38,
+                    ),
+                    cells=dict(
+                        values=[
+                            [f"<b>{v}</b>" for v in sample_df["연도"]],
+                            [f"{v:,}" for v in sample_df["총 가구"]],
+                            [f"{v:,}" for v in sample_df["금융부채 가구"]],
+                            [f"{v:,}" for v in sample_df["30D+ 연체가구"]],
+                            [f"<b>{v:.2f}%</b>" for v in sample_df["연체율"]],
+                        ],
+                        fill_color=[
+                            ["#102B49"] * 4,
+                            ["#0D263F"] * 4,
+                            ["#0D263F"] * 4,
+                            ["#0D263F", "#0D263F", "#0D263F", "#2B2330"],
+                            ["#102B49", "#102B49", "#102B49", "#332337"],
+                        ],
+                        line_color="rgba(100,160,215,.18)",
+                        font=dict(color="#D9E8F7", size=11),
+                        align=["left", "right", "right", "right", "right"],
+                        height=47,
+                    ),
+                )
+            ]
+        )
+
+        fig_sample_table.update_layout(
+            height=390,
+            title=dict(
+                text=(
+                    "<b>Sample Structure</b><br>"
+                    "<span style='font-size:10px;'>ANNUAL OBSERVATION TABLE</span>"
+                ),
+                x=.01,
+                font=dict(size=16, color="#F7FAFF"),
+            ),
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=0, r=0, t=72, b=10),
+        )
+
+        st.plotly_chart(
+        apply_motion(fig_sample_table),
+            width="stretch",
+            config={"displaylogo": False, "displayModeBar": False},
+        )
+
+    st.markdown(
+        ":blue[**DATA FLOW · 2021–2023 DEV → 2024 INPUT → 2025 OOT VALIDATION**]"
+    )
+    st.caption(
+        "2024년 금융부채 보유가구 6,607가구를 입력으로 사용해 "
+        "2025년 30일 이상 장기연체 여부를 OOT에서 평가합니다."
+    )
+
+    st.divider()
+
+    # ========================================================
+    # 02 · VARIABLE DIAGNOSTICS
+    # ========================================================
+    st.markdown(":blue[**02 · VARIABLE DIAGNOSTICS**]")
+    st.markdown("### 최종 12개 설명변수 · OLS & VIF")
+    st.write(
+        "최종 설명변수의 기본적인 관계와 다중공선성을 점검했습니다. "
+        "표를 단순히 나열하기보다 VIF 구조와 회귀 진단값을 함께 확인할 수 있도록 구성했습니다."
+    )
+
+    ols_df = pd.DataFrame([
+        ["const", 0.0295, 0.001, 22.964, 0.000, None],
+        ["처분가능소득(보완)", -0.0054, 0.002, -3.225, 0.001, 1.715],
+        ["지출_소비지출비", -0.0123, 0.002, -6.060, 0.000, 2.523],
+        ["자산", -0.0060, 0.002, -2.753, 0.006, 2.871],
+        ["금융자산_저축금액", -0.0082, 0.003, 2.930, 0.003, 4.737],
+        ["유동자산(추정)", -0.0092, 0.003, -3.339, 0.001, 4.578],
+        ["부채", 0.0041, 0.002, 2.013, 0.044, 2.540],
+        ["금융부채_신용대출", 0.0033, 0.001, 2.254, 0.024, 1.267],
+        ["금융부채_신용카드", 0.0274, 0.001, 21.114, 0.000, 1.027],
+        ["금융부채_개인·직장", 0.0152, 0.001, 11.607, 0.000, 1.040],
+        ["무담보위험부채비중", 0.0073, 0.001, 5.090, 0.000, 1.241],
+        ["지출_주거비", 0.0066, 0.001, 4.626, 0.000, 1.239],
+        ["가구원", -0.0006, 0.002, -0.359, 0.720, 1.601],
+    ], columns=["변수", "coef", "std err", "t", "P>|t|", "VIF"])
+
+    diag_left, diag_right = st.columns([1.18, .82], gap="large")
+
+    with diag_left:
+        plot_vif = ols_df.dropna(subset=["VIF"]).sort_values("VIF", ascending=True)
+
+        vif_colors = [
+            "#FF704D" if v >= 4.5
+            else "#32C8FF" if v >= 2.5
+            else "#4385FF"
+            for v in plot_vif["VIF"]
+        ]
+
+        fig_vif = go.Figure(
+            go.Bar(
+                x=plot_vif["VIF"],
+                y=plot_vif["변수"],
+                orientation="h",
+                marker=dict(color=vif_colors),
+                text=[f"{v:.3f}" for v in plot_vif["VIF"]],
+                textposition="outside",
+                cliponaxis=False,
+                customdata=np.stack(
+                    [
+                        plot_vif["coef"],
+                        plot_vif["P>|t|"],
+                        plot_vif["t"],
+                    ],
+                    axis=-1,
+                ),
+                hovertemplate=(
+                    "<b>%{y}</b><br>"
+                    "VIF %{x:.3f}<br>"
+                    "coef %{customdata[0]:.4f}<br>"
+                    "p-value %{customdata[1]:.3f}<br>"
+                    "t %{customdata[2]:.3f}"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+        fig_vif.add_vline(
+            x=5,
+            line_width=1.5,
+            line_dash="dash",
+            line_color="rgba(255,112,77,.70)",
+            annotation_text="VIF 5",
+            annotation_font_color="#FF9E87",
+        )
+
+        fig_vif.update_layout(
+            margin=dict(l=165, r=65, t=72, b=45),
+
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(7,22,39,.38)",
+
+            xaxis=dict(
+                title="Variance Inflation Factor",
+                range=[0, 5.45],
+                gridcolor="rgba(130,160,200,.10)",
+                zeroline=False,
+                tickfont=dict(color="#91A6BF"),
+            ),
+
+            yaxis=dict(
+                tickfont=dict(
+                    size=10,
+                    color="#C5D3E2"
+                ),
+                automargin=True,
+                ticklabelposition="outside",
+            ),
+
+            showlegend=False,
+
+            hoverlabel=dict(
+                bgcolor="#0A192B",
+                font_size=12,
+                font_color="white",
+            ),
+        )
+
+        animated_bar_chart(
+            fig_vif,
+            key="vif_animation",
+            steps=14,
+            delay=0.035
+        )
+
+    with diag_right:
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            st.metric("FEATURES", "12")
+        with d2:
+            st.metric("MAX VIF", "4.737")
+        with d3:
+            st.metric("VIF ≥ 5", "0")
+
+        fig_ols_table = go.Figure(
+            data=[
+                go.Table(
+                    columnwidth=[1.65, .65, .7, .65, .7, .65],
+                    header=dict(
+                        values=[
+                            "<b>VARIABLE</b>",
+                            "<b>COEF</b>",
+                            "<b>STD ERR</b>",
+                            "<b>t</b>",
+                            "<b>p</b>",
+                            "<b>VIF</b>",
+                        ],
+                        fill_color="#123A61",
+                        line_color="rgba(90,165,230,.38)",
+                        font=dict(color="#DDEEFF", size=10),
+                        align=["left", "right", "right", "right", "right", "right"],
+                        height=31,
+                    ),
+                    cells=dict(
+                        values=[
+                            ols_df["변수"],
+                            [f"{v:.4f}" for v in ols_df["coef"]],
+                            [f"{v:.3f}" for v in ols_df["std err"]],
+                            [f"{v:.3f}" for v in ols_df["t"]],
+                            [f"{v:.3f}" for v in ols_df["P>|t|"]],
+                            ["–" if pd.isna(v) else f"{v:.3f}" for v in ols_df["VIF"]],
+                        ],
+                        fill_color=[
+                            ["#102B49"] * len(ols_df),
+                            ["#0D263F"] * len(ols_df),
+                            ["#0D263F"] * len(ols_df),
+                            ["#0D263F"] * len(ols_df),
+                            [
+                                "#332337" if v >= .05 else "#0D263F"
+                                for v in ols_df["P>|t|"]
+                            ],
+                            [
+                                "#30293A" if (not pd.isna(v) and v >= 4.5)
+                                else "#0D263F"
+                                for v in ols_df["VIF"]
+                            ],
+                        ],
+                        line_color="rgba(100,160,215,.16)",
+                        font=dict(color="#D9E8F7", size=9),
+                        align=["left", "right", "right", "right", "right", "right"],
+                        height=29,
+                    ),
+                )
+            ]
+        )
+
+        fig_ols_table.update_layout(
+            height=445,
+            title=dict(
+                text=(
+                    "<b>OLS Diagnostic Table</b><br>"
+                    "<span style='font-size:10px;'>COEFFICIENT · SIGNIFICANCE · VIF</span>"
+                ),
+                x=.01,
+                font=dict(size=15, color="#F7FAFF"),
+            ),
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=0, r=0, t=62, b=0),
+        )
+
+        st.plotly_chart(
+        apply_motion(fig_ols_table),
+            width="stretch",
+            config={"displaylogo": False, "displayModeBar": False},
+        )
+
+        st.markdown(":blue[**DIAGNOSTIC RESULT**]")
+        st.caption(
+            "최대 VIF는 4.737이며 12개 설명변수 모두 VIF 5 미만입니다. "
+            "OLS/VIF는 변수 제거의 단독 기준이 아니라 최종 변수구조를 확인하는 보조 진단으로 사용했습니다."
+        )
+
+    st.divider()
+
+    # ========================================================
+    # 03 · EVALUATION METRICS
+    # ========================================================
+    st.markdown(":blue[**03 · EVALUATION METRICS**]")
+    st.markdown("### 분류모형은 어떤 기준으로 평가했는가?")
+    st.write(
+        "혼동행렬에서 출발하는 핵심 분류지표와 ROC-AUC를 함께 확인했습니다. "
+        "각 공식은 뒤의 후보모형 비교에서 사용되는 성능지표의 기준입니다."
+    )
+    st.write("")
+
+    m1, m2, m3 = st.columns(3, gap="medium")
+
+    with m1:
+        with st.container(border=True):
+            st.caption("01 / OVERALL CORRECTNESS")
+            st.markdown("#### Accuracy")
+            st.latex(r"\frac{TN+TP}{TN+TP+FN+FP}")
+            st.caption("전체 예측 중 올바르게 분류한 비율")
+
+        with st.container(border=True):
+            st.caption("02 / POSITIVE RELIABILITY")
+            st.markdown("#### Precision")
+            st.latex(r"\frac{TP}{TP+FP}")
+            st.caption("위험가구 예측 중 실제 위험가구의 비율")
+
+    with m2:
+        with st.container(border=True):
+            st.caption("03 / EVENT CAPTURE")
+            st.markdown("#### Recall · TPR")
+            st.latex(r"\frac{TP}{TP+FN}")
+            st.caption("실제 위험가구 중 모델이 찾아낸 비율")
+
+        with st.container(border=True):
+            st.caption("04 / BALANCE")
+            st.markdown("#### F1-score")
+            st.latex(r"2\times\frac{Precision\times Recall}{Precision+Recall}")
+            st.caption("Precision과 Recall의 조화평균")
+
+    with m3:
+        with st.container(border=True):
+            st.caption("05 / RANKING POWER")
+            st.markdown("#### ROC-AUC")
+            st.latex(r"\int_{0}^{1}TPR(FPR^{-1}(x))\,dx")
+            st.caption("여러 임계값에서 양성과 음성을 구분하는 능력")
+
+        with st.container(border=True):
+            st.caption("PRIMARY METRIC · NEXT SECTION")
+            st.markdown("#### :blue[PR-AUC]")
+            st.markdown("**희소한 30D+ 연체가구의 선별력을 중심으로 비교**")
+            st.caption(
+                "장기연체 비율이 약 3%인 불균형 데이터이므로 "
+                "다음 MODEL LAB에서는 PR-AUC를 주요 선정지표로 사용합니다."
+            )
+
+    st.write("")
+    st.markdown(
+        ":blue[**NEXT · SAME 12 FEATURES → LOGISTIC · RANDOM FOREST · XGBOOST · TABNET**]"
+    )
+
+    st.write("")
+    back_col, empty_col, next_col = st.columns([1, 4, 1])
+
+    with back_col:
+        if st.button("← OPENING", width="stretch"):
+            st.session_state.page = "OPENING"
+            st.rerun()
+
+    with next_col:
+        if st.button("MODEL LAB →", width="stretch"):
+            st.session_state.page = "MODEL"
+            st.rerun()
+
 elif st.session_state.page == "MODEL":
+
+    motion_signal("MODEL COMPARISON · LIVE")
 
     st.markdown(
         ":blue[**02 / MODEL PERFORMANCE**]"
@@ -2053,15 +2919,11 @@ elif st.session_state.page == "MODEL":
             )
         )
 
-
-        st.plotly_chart(
+        animated_bar_chart(
             fig2,
-            use_container_width=True,
-
-            config={
-                "displaylogo": False,
-                "displayModeBar": False
-            }
+            key="model_pr_auc_animation",
+            steps=16,
+            delay=0.04
         )
 
 
@@ -2289,6 +3151,8 @@ elif st.session_state.page == "MODEL":
 
 elif st.session_state.page == "EXPLAIN":
 
+    motion_signal("MODEL EXPLAINABILITY · LIVE")
+
     st.markdown(":blue[**03 / MODEL EXPLAINABILITY**]")
     st.markdown("## XGBoost는 어떤 재무정보를 중요하게 보았는가?")
     st.caption("SHAP FEATURE IMPORTANCE · FINAL XGBOOST MODEL · DEV 2021–2023")
@@ -2369,7 +3233,12 @@ elif st.session_state.page == "EXPLAIN":
         showlegend=False,
         hoverlabel=dict(bgcolor="#0A192B", bordercolor="#4385FF", font_color="#FFFFFF")
     )
-    st.plotly_chart(fig_imp, use_container_width=True, config={"displaylogo": False})
+    animated_bar_chart(
+        fig_imp,
+        key="shap_importance_animation",
+        steps=16,
+        delay=0.04
+    )
 
     st.markdown(":blue[**KEY FINDING · 모델은 부채 규모만 보지 않았습니다.**]")
     st.write(
@@ -2466,7 +3335,7 @@ elif st.session_state.page == "EXPLAIN":
         )
 
         st.plotly_chart(
-            fig_dep,
+        apply_motion(fig_dep),
             use_container_width=True,
             config={
                 "displaylogo": False,
@@ -2520,6 +3389,8 @@ elif st.session_state.page == "EXPLAIN":
 
 
 elif st.session_state.page == "PROFILE":
+
+    motion_signal("HOUSEHOLD PROFILE · LIVE")
 
     st.markdown(":orange[**04 / HOUSEHOLD RISK PROFILE**]")
 
@@ -2585,6 +3456,10 @@ body {
 .card {
 
     position: relative;
+
+    opacity: 0;
+    transform: translateY(12px);
+    animation: validateCardIn .55s cubic-bezier(.2,.8,.2,1) forwards;
 
     height: 175px;
 
@@ -3337,16 +4212,11 @@ body {
         )
 
 
-        st.plotly_chart(
-
+        animated_bar_chart(
             fig_profile,
-
-            use_container_width=True,
-
-            config={
-                "displaylogo": False,
-                "displayModeBar": False
-            }
+            key="profile_animation",
+            steps=16,
+            delay=0.04
         )
 
 
@@ -3672,8 +4542,7 @@ body {
 
 
         st.plotly_chart(
-
-            fig_risk,
+        apply_motion(fig_risk),
 
             use_container_width=True,
 
@@ -3822,6 +4691,8 @@ body {
 # ============================================================
 
 elif st.session_state.page == "VALIDATE":
+
+    motion_signal("TEMPORAL VALIDATION · LIVE")
 
     st.markdown(":blue[**05 / OUT-OF-TIME VALIDATION**]")
 
@@ -4141,6 +5012,25 @@ body {
     font-weight: 650;
 }
 
+
+.card:nth-child(2){animation-delay:.08s}
+.card:nth-child(3){animation-delay:.16s}
+
+@keyframes validateCardIn{
+    to{opacity:1;transform:translateY(0)}
+}
+
+.dev-dot{animation:devPulse 1.8s ease-in-out infinite}
+.oot-dot{animation:ootPulse 1.8s .25s ease-in-out infinite}
+
+@keyframes devPulse{
+    0%,100%{box-shadow:0 0 8px rgba(67,133,255,.35)}
+    50%{box-shadow:0 0 18px rgba(67,133,255,.68)}
+}
+@keyframes ootPulse{
+    0%,100%{box-shadow:0 0 8px rgba(50,200,255,.35)}
+    50%{box-shadow:0 0 18px rgba(50,200,255,.68)}
+}
 </style>
 
 </head>
@@ -4496,8 +5386,7 @@ body {
 
 
     st.plotly_chart(
-
-        fig_validate,
+        apply_motion(fig_validate),
 
         use_container_width=True,
 
@@ -4528,6 +5417,110 @@ body {
     st.markdown(
         "### 성능 감소가 :blue[입력변수의 분포 변화] 때문이었는가?"
     )
+
+
+    components.html(
+        """
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;padding:3px;background:transparent;color:#F8FBFF;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    overflow:hidden;
+}
+.monitor{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+.mcard{
+    position:relative;
+    height:112px;
+    padding:14px 16px;
+    border-radius:11px;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at 92% 0%,rgba(47,224,208,.14),transparent 42%),
+        linear-gradient(145deg,rgba(20,57,92,.96),rgba(10,35,60,.98));
+    border:1px solid rgba(50,200,255,.32);
+    opacity:0;
+    transform:translateY(12px);
+    animation:enter .52s cubic-bezier(.2,.8,.2,1) forwards;
+    transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.mcard:nth-child(2){animation-delay:.07s}
+.mcard:nth-child(3){animation-delay:.14s}
+.mcard:nth-child(4){animation-delay:.21s}
+.mcard:hover{
+    transform:translateY(-3px);
+    border-color:rgba(47,224,208,.60);
+    box-shadow:0 12px 28px rgba(47,224,208,.08);
+}
+.label{
+    font-size:9px;font-weight:800;letter-spacing:.55px;color:#8FA9C3;
+}
+.value{
+    margin-top:7px;font-size:29px;font-weight:900;letter-spacing:-1.2px;
+    color:#EAF7FF;
+}
+.aqua{color:#55E5D7;text-shadow:0 0 18px rgba(47,224,208,.18)}
+.orange{color:#FF8B70}
+.sub{margin-top:3px;font-size:9px;font-weight:650;color:#8FA9C3}
+.track{
+    height:5px;margin-top:8px;border-radius:99px;background:rgba(130,170,205,.13);
+    overflow:hidden;
+}
+.fill{
+    height:100%;width:0;border-radius:99px;
+    background:linear-gradient(90deg,#4385FF,#2FE0D0);
+    animation:grow 1.05s .35s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.ref{
+    position:absolute;right:14px;bottom:12px;font-size:8px;color:#FF9B84;font-weight:800;
+}
+@keyframes enter{to{opacity:1;transform:translateY(0)}}
+@keyframes grow{to{width:41.3%}}
+@media(prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+    .fill{width:41.3%}
+}
+</style>
+</head>
+<body>
+<div class="monitor">
+  <div class="mcard">
+    <div class="label">VARIABLES CHECKED</div>
+    <div class="value">12</div>
+    <div class="sub">INPUT FEATURES</div>
+  </div>
+  <div class="mcard">
+    <div class="label">MAX PSI</div>
+    <div class="value aqua">0.0413</div>
+    <div class="sub">주거비 · HIGHEST</div>
+    <div class="track"><div class="fill"></div></div>
+    <div class="ref">0.10 REF</div>
+  </div>
+  <div class="mcard">
+    <div class="label">ABOVE 0.10</div>
+    <div class="value aqua">0</div>
+    <div class="sub">NO VARIABLE EXCEEDED</div>
+  </div>
+  <div class="mcard">
+    <div class="label">INPUT STABILITY</div>
+    <div class="value aqua">STABLE</div>
+    <div class="sub">12 / 12 BELOW REFERENCE</div>
+  </div>
+</div>
+</body>
+</html>
+""",
+        height=126,
+        scrolling=False
+    )
+
 
 
     psi_data = {
@@ -4707,16 +5700,11 @@ body {
     )
 
 
-    st.plotly_chart(
-
+    animated_bar_chart(
         fig_psi,
-
-        use_container_width=True,
-
-        config={
-            "displaylogo": False,
-            "displayModeBar": False
-        }
+        key="psi_animation",
+        steps=16,
+        delay=0.04
     )
 
 
@@ -4757,214 +5745,174 @@ body {
 
 
     # ========================================================
-    # 04 · PREDICTION ERROR
+    # 04 · 2024 INPUT → 2025 OOT OUTCOME
     # ========================================================
 
     st.divider()
 
-    st.caption(
-        "03 / PREDICTION ERROR"
-    )
+    st.caption("03 / TEMPORAL TRANSITION")
 
     st.markdown(
-        "### 예측점수와 실제 결과 간의 오차는 얼마나 변했는가?"
+        "### :blue[2024년 가구정보]는 2025년 실제 장기연체 결과로 어떻게 연결되었는가?"
     )
 
-
-    brier_left, brier_right = st.columns(
-        [1, 1],
-        gap="large"
+    st.write(
+        "DEV에서 확정한 XGBoost와 임계값 0.7786을 변경하지 않고, "
+        "2024년 가구정보를 입력해 2025년 실제 30일 이상 장기연체 여부를 평가했습니다."
     )
 
+    components.html(
+        """
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;padding:3px;background:transparent;color:#F8FBFF;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    overflow:hidden;
+}
+.stage{
+    position:relative;
+    height:320px;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid rgba(67,133,255,.28);
+    background:
+      radial-gradient(circle at 16% 50%,rgba(67,133,255,.18),transparent 25%),
+      radial-gradient(circle at 84% 50%,rgba(255,112,77,.12),transparent 25%),
+      linear-gradient(135deg,rgba(11,36,62,.98),rgba(15,48,79,.96));
+}
+.grid{
+    position:absolute;inset:0;opacity:.22;
+    background-image:
+      linear-gradient(rgba(120,175,230,.10) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(120,175,230,.10) 1px,transparent 1px);
+    background-size:46px 46px;
+}
+.node{
+    position:absolute;top:55px;width:210px;height:205px;padding:16px;
+    border-radius:13px;
+    background:linear-gradient(145deg,rgba(21,59,95,.96),rgba(10,34,59,.98));
+    opacity:0;transform:translateY(12px);
+    animation:nodeIn .55s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.left{
+    left:34px;border:1px solid rgba(67,133,255,.55);
+    box-shadow:0 0 30px rgba(67,133,255,.07);
+}
+.right{
+    right:34px;border:1px solid rgba(255,112,77,.48);
+    box-shadow:0 0 30px rgba(255,112,77,.06);
+    animation-delay:1.1s;
+}
+.kicker{font-size:9px;font-weight:800;letter-spacing:.7px;color:#8EA9C5}
+.year{
+    margin-top:6px;font-size:42px;line-height:1;font-weight:950;letter-spacing:-2px;
+}
+.left .year{color:#76A8FF}
+.right .year{color:#FF8B70}
+.big{margin-top:13px;font-size:25px;font-weight:900;letter-spacing:-1px}
+.small{margin-top:3px;font-size:10px;color:#91ABC4;font-weight:650}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.metric{
+    padding:7px;border-radius:8px;background:rgba(120,170,215,.08);
+    border:1px solid rgba(120,170,215,.12);
+}
+.mv{font-size:16px;font-weight:900;color:#F4FAFF}
+.ml{font-size:7px;font-weight:800;color:#7896B4;letter-spacing:.35px}
+.rail{
+    position:absolute;left:270px;right:270px;top:156px;height:5px;
+    border-radius:99px;background:rgba(120,170,215,.13);overflow:visible;
+}
+.progress{
+    position:absolute;left:0;top:0;height:100%;width:0;border-radius:99px;
+    background:linear-gradient(90deg,#4385FF,#32C8FF,#FF704D);
+    box-shadow:0 0 16px rgba(50,200,255,.28);
+    animation:travel 1.55s .48s cubic-bezier(.2,.75,.2,1) forwards;
+}
+.signal{
+    position:absolute;left:0;top:50%;width:16px;height:16px;border-radius:50%;
+    transform:translate(-50%,-50%);
+    background:#EAF8FF;border:3px solid #32C8FF;
+    box-shadow:0 0 22px rgba(50,200,255,.65);
+    animation:signalMove 1.55s .48s cubic-bezier(.2,.75,.2,1) forwards;
+}
+.arrow{
+    position:absolute;left:50%;top:105px;transform:translateX(-50%);
+    text-align:center;opacity:0;animation:fade .4s .8s forwards;
+}
+.arrow .main{font-size:12px;font-weight:900;color:#C9DDF0;letter-spacing:.7px}
+.arrow .sub{font-size:8px;color:#7694B1;margin-top:4px}
+.result{
+    position:absolute;left:50%;bottom:14px;transform:translateX(-50%) translateY(8px);
+    opacity:0;white-space:nowrap;
+    padding:9px 16px;border-radius:999px;
+    background:rgba(255,112,77,.10);border:1px solid rgba(255,112,77,.30);
+    color:#FFD1C6;font-size:10px;font-weight:800;letter-spacing:.35px;
+    animation:resultIn .5s 1.85s forwards;
+}
+@keyframes nodeIn{to{opacity:1;transform:translateY(0)}}
+@keyframes travel{to{width:100%}}
+@keyframes signalMove{to{left:100%;border-color:#FF704D;box-shadow:0 0 24px rgba(255,112,77,.60)}}
+@keyframes fade{to{opacity:1}}
+@keyframes resultIn{to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;animation-delay:0ms!important}
+  .progress{width:100%}.signal{left:100%}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="grid"></div>
 
-    with brier_left:
+  <div class="node left">
+    <div class="kicker">MODEL INPUT · t</div>
+    <div class="year">2024</div>
+    <div class="big">6,607</div>
+    <div class="small">금융부채 보유가구 · HOUSEHOLD INPUT</div>
+    <div class="metrics">
+      <div class="metric"><div class="mv">12</div><div class="ml">FEATURES</div></div>
+      <div class="metric"><div class="mv">0.7786</div><div class="ml">FROZEN THRESHOLD</div></div>
+    </div>
+  </div>
 
-        fig_brier = go.Figure()
+  <div class="arrow">
+    <div class="main">XGBOOST · NEXT-YEAR RISK</div>
+    <div class="sub">DEV에서 확정한 모델과 임계값을 그대로 적용</div>
+  </div>
 
+  <div class="rail">
+    <div class="progress"></div>
+    <div class="signal"></div>
+  </div>
 
-        fig_brier.add_trace(
-            go.Scatter(
+  <div class="node right">
+    <div class="kicker">OBSERVED OUTCOME · t+1</div>
+    <div class="year">2025</div>
+    <div class="big">173</div>
+    <div class="small">ACTUAL 30D+ DELINQUENT HOUSEHOLDS · 2.62%</div>
+    <div class="metrics">
+      <div class="metric"><div class="mv">0.1519</div><div class="ml">PR-AUC</div></div>
+      <div class="metric"><div class="mv">0.7874</div><div class="ml">ROC-AUC</div></div>
+    </div>
+  </div>
 
-                x=[
-                    "DEV OOF",
-                    "2025 OOT"
-                ],
-
-                y=[
-                    .0861,
-                    .0892
-                ],
-
-                mode="lines+markers+text",
-
-                line=dict(
-                    width=4,
-                    color="#4385FF"
-                ),
-
-                marker=dict(
-                    size=[
-                        15,
-                        17
-                    ],
-
-                    color=[
-                        "#4385FF",
-                        "#32C8FF"
-                    ],
-
-                    line=dict(
-                        width=2,
-                        color="#E8F6FF"
-                    )
-                ),
-
-                text=[
-                    "0.0861",
-                    "0.0892"
-                ],
-
-                textposition=[
-                    "bottom center",
-                    "top center"
-                ],
-
-                textfont=dict(
-                    size=15,
-                    color="#FFFFFF"
-                ),
-
-                hovertemplate=(
-                    "<b>%{x}</b>"
-                    "<br>"
-                    "Brier Score %{y:.4f}"
-                    "<extra></extra>"
-                )
-            )
-        )
-
-
-        fig_brier.update_layout(
-
-            height=310,
-
-            title=dict(
-
-                text=(
-                    "<b>Brier Score</b>"
-                    "<br>"
-                    "<span style='font-size:11px;'>"
-                    "LOWER IS BETTER"
-                    "</span>"
-                ),
-
-                x=.02,
-
-                font=dict(
-                    size=18,
-                    color="#FFFFFF"
-                )
-            ),
-
-            paper_bgcolor=
-                "rgba(0,0,0,0)",
-
-            plot_bgcolor=
-                "rgba(16,45,75,.54)",
-
-            margin=dict(
-                l=50,
-                r=25,
-                t=80,
-                b=45
-            ),
-
-            yaxis=dict(
-
-                range=[
-                    .08,
-                    .095
-                ],
-
-                tickformat=".3f",
-
-                gridcolor=
-                    "rgba(150,190,225,.13)",
-
-                tickfont=dict(
-                    size=12,
-                    color="#BDD0E2"
-                )
-            ),
-
-            xaxis=dict(
-
-                tickfont=dict(
-                    size=14,
-                    color="#EDF6FF"
-                )
-            ),
-
-            showlegend=False
-        )
-
-
-        st.plotly_chart(
-
-            fig_brier,
-
-            use_container_width=True,
-
-            config={
-                "displaylogo": False,
-                "displayModeBar": False
-            }
-        )
-
-
-    with brier_right:
-
-        st.caption(
-            "BRIER SCORE CHANGE"
-        )
-
-
-        st.markdown(
-            """
-<div style="
-    font-size:48px;
-    font-weight:900;
-    color:#FF8A6D;
-    line-height:1;
-    letter-spacing:-2px;
-    text-shadow:
-        0 0 25px rgba(255,112,77,.30);
-    margin:12px 0 8px 0;
-">
-    +0.0031
+  <div class="result">2024 INPUT → 2025 OOT · TEMPORALLY SEPARATED VALIDATION</div>
 </div>
+</body>
+</html>
 """,
-            unsafe_allow_html=True
-        )
+        height=335,
+        scrolling=False
+    )
 
-
-        st.write(
-            "DEV OOF 0.0861에서 OOT 0.0892로 "
-            "예측오차가 소폭 증가했습니다."
-        )
-
-
-        st.write(
-            "다만 증가폭은 0.0031로 크지 않았으며, "
-            "미래 시점에서도 예측점수와 실제 결과 간의 "
-            "오차 수준이 크게 달라지지는 않았습니다."
-        )
-
-
-        st.caption(
-            "Brier Score는 연체율이 아니라 "
-            "예측값과 실제 결과 간의 평균제곱오차입니다."
-        )
+    st.caption(
+        "2024년 입력정보에서 2025년 실제 결과까지 시간적으로 분리해 평가했으며, "
+        "OOT 결과는 모형 선정이나 Threshold 조정에 사용하지 않았습니다."
+    )
 
 
     # ========================================================
@@ -5027,6 +5975,8 @@ body {
 
 elif st.session_state.page == "SCREEN":
 
+    motion_signal("RISK SCREENING · LIVE")
+
     st.markdown(":orange[**06 / RISK SCREENING**]")
 
     st.markdown(
@@ -5086,22 +6036,10 @@ elif st.session_state.page == "SCREEN":
 
         st.caption("CUMULATIVE CAPTURE")
 
-        st.markdown(
-            f"""
-<div style="
-    font-size:76px;
-    font-weight:900;
-    line-height:.95;
-    letter-spacing:-4px;
-    color:#FF704D;
-    text-shadow:
-        0 0 32px rgba(255,112,77,.34);
-    margin:5px 0 8px 0;
-">
-    {selected_gain:.2f}%
-</div>
-""",
-            unsafe_allow_html=True
+        animated_gain_card(
+            selected_gain,
+            steps=20,
+            delay=0.025
         )
 
         st.markdown(
@@ -5278,6 +6216,7 @@ elif st.session_state.page == "SCREEN":
             ],
 
             textposition="top center",
+            cliponaxis=False,
 
             textfont=dict(
                 size=14,
@@ -5392,7 +6331,7 @@ elif st.session_state.page == "SCREEN":
 
 
     st.plotly_chart(
-        fig_gain,
+        apply_motion(fig_gain),
         use_container_width=True,
         config={
             "displaylogo": False,
@@ -5529,13 +6468,11 @@ elif st.session_state.page == "SCREEN":
         )
 
 
-        st.plotly_chart(
+        animated_bar_chart(
             fig_lift,
-            use_container_width=True,
-            config={
-                "displaylogo": False,
-                "displayModeBar": False
-            }
+            key="lift_animation",
+            steps=18,
+            delay=0.045
         )
 
 

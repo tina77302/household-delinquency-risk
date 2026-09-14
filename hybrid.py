@@ -1001,41 +1001,32 @@ with st.sidebar:
         st.rerun()
 
 
-    if st.button(
-        "03   MODEL LAB",
-        use_container_width=True
-    ):
+    if st.button("03   VALIDATION MAP", use_container_width=True):
+        st.session_state.page = "VALIDATION_MAP"
+        st.rerun()
+
+    if st.button("04   MODEL LAB", use_container_width=True):
         st.session_state.page = "MODEL"
         st.rerun()
 
-
-    if st.button(
-        "04   EXPLAIN",
-        use_container_width=True
-    ):
+    if st.button("05   EXPLAIN", use_container_width=True):
         st.session_state.page = "EXPLAIN"
         st.rerun()
 
-
-    if st.button(
-        "05   PROFILE",
-        use_container_width=True
-    ):
+    if st.button("06   PROFILE", use_container_width=True):
         st.session_state.page = "PROFILE"
         st.rerun()
 
-    if st.button(
-        "06   VALIDATE",
-        use_container_width=True
-    ):
+    if st.button("07   OOT VALIDATE", use_container_width=True):
         st.session_state.page = "VALIDATE"
         st.rerun()
 
-    if st.button(
-        "07   SCREEN",
-        use_container_width=True
-    ):
+    if st.button("08   SCREEN", use_container_width=True):
         st.session_state.page = "SCREEN"
+        st.rerun()
+
+    if st.button("09   CONCLUSION", use_container_width=True):
+        st.session_state.page = "CONCLUSION"
         st.rerun()
 
     st.write("")
@@ -1673,397 +1664,99 @@ setTimeout(
 
 
     # ========================================================
-    # OPENING RIGHT
+    # OPENING RIGHT · REFINED VISUAL
     # ========================================================
 
     with hero_right:
+        st.caption("MICRO PANEL DATA · ML/DL · OUT-OF-TIME VALIDATION")
 
-        np.random.seed(35)
-
-        n_current = 88
-
-        current_x = np.random.normal(
-            2.05,
-            .70,
-            n_current
-        )
-
-        current_y = np.random.normal(
-            5.0,
-            1.65,
-            n_current
-        )
-
-
-        n_future = 62
-
-        future_x = np.random.normal(
-            8.0,
-            .66,
-            n_future
-        )
-
-        future_y = np.random.normal(
-            5.0,
-            1.65,
-            n_future
-        )
-
-
-        future_signal = (
-            future_y
-            + np.random.normal(
-                0,
-                1.15,
-                n_future
-            )
-        )
-
-
-        high_risk = (
-            future_signal
-            >= np.quantile(
-                future_signal,
-                .79
-            )
-        )
-
+        left_y = np.array([7.9,7.2,6.6,6.0,5.4,4.8,4.2,3.6,3.0,2.4])
+        left_x = np.array([1.20,1.58,1.34,1.72,1.48,1.18,1.66,1.39,1.76,1.30])
+        right_y = np.array([7.9,7.2,6.6,6.0,5.4,4.8,4.2,3.6,3.0,2.4])
+        right_x = np.array([8.42,8.70,8.30,8.78,8.48,8.22,8.66,8.38,8.76,8.28])
+        risk_idx = np.array([0, 3, 6])
+        normal_idx = np.array([i for i in range(10) if i not in risk_idx])
 
         fig = go.Figure()
 
+        fig.add_trace(go.Scatter(
+            x=[2.15,4.25], y=[5.15,5.15], mode="lines",
+            line=dict(width=3, color="rgba(67,133,255,.58)"),
+            hoverinfo="skip", showlegend=False
+        ))
+        fig.add_trace(go.Scatter(
+            x=[5.75,7.82], y=[5.15,5.15], mode="lines",
+            line=dict(width=3, color="rgba(50,200,255,.58)"),
+            hoverinfo="skip", showlegend=False
+        ))
 
-        # FLOW
+        fig.add_trace(go.Scatter(
+            x=left_x, y=left_y, mode="markers", name="2024 INPUT",
+            marker=dict(size=10, color="#4385FF", opacity=.82,
+                        line=dict(width=1, color="rgba(210,230,255,.62)")),
+            hovertemplate="<b>2024 INPUT</b><br>가구 재무정보<extra></extra>"
+        ))
 
-        fig.add_trace(
-            go.Scatter(
-                x=[3.2, 6.8],
-                y=[5, 5],
+        fig.add_trace(go.Scatter(
+            x=right_x[normal_idx], y=right_y[normal_idx],
+            mode="markers", name="2025 OOT",
+            marker=dict(size=10, color="#32C8FF", opacity=.72,
+                        line=dict(width=1, color="rgba(210,245,255,.55)")),
+            hovertemplate="<b>2025 OOT</b><br>관측 결과<extra></extra>"
+        ))
 
-                mode="lines",
+        fig.add_trace(go.Scatter(
+            x=right_x[risk_idx], y=right_y[risk_idx],
+            mode="markers", name="30D+ RISK",
+            marker=dict(size=15, color="#FF704D", opacity=1,
+                        line=dict(width=2, color="#FFD7CD")),
+            hovertemplate="<b>30D+ DELINQUENCY</b><br>장기연체 관측<extra></extra>"
+        ))
 
-                line=dict(
-                    width=3,
-                    color="rgba(67,133,255,.43)"
-                ),
-
-                hoverinfo="skip",
-                showlegend=False
-            )
+        fig.add_shape(
+            type="circle", x0=4.35, x1=5.65, y0=4.10, y1=6.20,
+            fillcolor="rgba(67,133,255,.14)",
+            line=dict(color="#6DA4FF", width=2)
         )
-
-
         fig.add_annotation(
-            x=6.55,
-            y=5,
-
-            ax=3.45,
-            ay=5,
-
-            xref="x",
-            yref="y",
-
-            axref="x",
-            ayref="y",
-
-            text="",
-
-            showarrow=True,
-
-            arrowhead=3,
-            arrowsize=1.4,
-            arrowwidth=2.4,
-
-            arrowcolor="#4385FF"
+            x=5, y=5.38, text="<b>MODEL</b>",
+            showarrow=False, font=dict(size=17, color="#FFFFFF")
         )
-
-
-        # 2024
-
-        fig.add_trace(
-            go.Scatter(
-                x=current_x,
-                y=current_y,
-
-                mode="markers",
-
-                name="2024 INPUT",
-
-                marker=dict(
-                    size=7.5,
-                    color="#4385FF",
-                    opacity=.58
-                ),
-
-                hovertemplate=(
-                    "<b>2024 INPUT</b>"
-                    "<br>"
-                    "가구 재무정보"
-                    "<extra></extra>"
-                )
-            )
-        )
-
-
-        # 2025 GENERAL
-
-        fig.add_trace(
-            go.Scatter(
-                x=future_x[~high_risk],
-                y=future_y[~high_risk],
-
-                mode="markers",
-
-                name="OOT OBSERVATION",
-
-                marker=dict(
-                    size=7.5,
-                    color="#32C8FF",
-                    opacity=.50
-                ),
-
-                hovertemplate=(
-                    "<b>2025 OOT</b>"
-                    "<br>"
-                    "상대적 저위험 영역"
-                    "<extra></extra>"
-                )
-            )
-        )
-
-
-        # 2025 RISK
-
-        fig.add_trace(
-            go.Scatter(
-                x=future_x[high_risk],
-                y=future_y[high_risk],
-
-                mode="markers",
-
-                name="30D+ RISK",
-
-                marker=dict(
-                    size=13,
-                    color="#FF704D",
-                    opacity=1,
-
-                    line=dict(
-                        width=2,
-                        color="#FFD7CD"
-                    )
-                ),
-
-                hovertemplate=(
-                    "<b>30+ DAY RISK</b>"
-                    "<br>"
-                    "30일 이상 원리금 연체위험"
-                    "<extra></extra>"
-                )
-            )
-        )
-
-
-        # MODEL
-
-        fig.add_trace(
-            go.Scatter(
-                x=[5],
-                y=[5],
-
-                mode="markers",
-
-                marker=dict(
-                    size=58,
-
-                    color="rgba(67,133,255,.20)",
-
-                    line=dict(
-                        width=1.8,
-                        color="#6E9EFF"
-                    )
-                ),
-
-                hovertemplate=(
-                    "<b>PREDICTION MODEL</b>"
-                    "<br>"
-                    "ML / DL 후보모형"
-                    "<extra></extra>"
-                ),
-
-                showlegend=False
-            )
-        )
-
-
         fig.add_annotation(
-            x=5,
-            y=5,
-
-            text=(
-                "<b>MODEL</b>"
-                "<br>"
-                "<span style='font-size:9px;'>"
-                "ML / DL"
-                "</span>"
-            ),
-
-            showarrow=False,
-
-            font=dict(
-                size=11,
-                color="#F0F5FF"
-            )
+            x=5, y=4.90, text="t → t+1",
+            showarrow=False, font=dict(size=10, color="#9FB8D2")
         )
-
-
-        # YEAR LABELS
-
         fig.add_annotation(
-            x=2.05,
-            y=9.15,
-
-            text=(
-                "<b>2024</b>"
-                "<br>"
-                "<span style='font-size:10px;'>"
-                "INPUT · 현재 재무정보"
-                "</span>"
-            ),
-
-            showarrow=False,
-
-            font=dict(
-                size=27,
-                color="#69A0FF"
-            )
+            x=1.48, y=8.85,
+            text="<b>2024</b><br><span style='font-size:9px'>HOUSEHOLD INPUT</span>",
+            showarrow=False, align="center",
+            font=dict(size=24, color="#6DA4FF")
         )
-
-
         fig.add_annotation(
-            x=8.0,
-            y=9.15,
-
-            text=(
-                "<b>2025</b>"
-                "<br>"
-                "<span style='font-size:10px;'>"
-                "OOT VALIDATION"
-                "</span>"
-            ),
-
-            showarrow=False,
-
-            font=dict(
-                size=27,
-                color="#F7FAFF"
-            )
+            x=8.50, y=8.85,
+            text="<b>2025</b><br><span style='font-size:9px'>OOT OUTCOME</span>",
+            showarrow=False, align="center",
+            font=dict(size=24, color="#F7FAFF")
         )
-
-
         fig.add_annotation(
-            x=5,
-            y=3.72,
-
-            text=(
-                "<b>t → t+1</b>"
-                "<br>"
-                "<span style='font-size:9px;'>"
-                "NEXT-YEAR RISK"
-                "</span>"
-            ),
-
-            showarrow=False,
-
-            font=dict(
-                size=10,
-                color="#87A8D4"
-            )
+            x=5, y=7.65,
+            text="<b>NEXT-YEAR RISK</b><br><span style='font-size:9px'>CURRENT FINANCIAL STATE → FUTURE DELINQUENCY</span>",
+            showarrow=False, align="center",
+            font=dict(size=11, color="#C7D9EA")
         )
-
-
-        if np.any(high_risk):
-
-            risk_indices = np.where(
-                high_risk
-            )[0]
-
-            target = risk_indices[
-                np.argmax(
-                    future_y[high_risk]
-                )
-            ]
-
-            fig.add_annotation(
-                x=future_x[target],
-                y=future_y[target],
-
-                text=(
-                    "<b>30+ DAY</b>"
-                    "<br>"
-                    "RISK SIGNAL"
-                ),
-
-                showarrow=True,
-
-                arrowhead=2,
-
-                arrowcolor="#FF704D",
-                arrowwidth=1.6,
-
-                ax=-65,
-                ay=55,
-
-                bgcolor="rgba(6,17,31,.95)",
-
-                bordercolor="rgba(255,112,77,.65)",
-
-                borderpad=6,
-
-                font=dict(
-                    size=9,
-                    color="#FF9E87"
-                )
-            )
-
 
         fig.update_layout(
             height=430,
-
             paper_bgcolor="rgba(0,0,0,0)",
-
-            plot_bgcolor="rgba(7,22,39,.38)",
-
-            margin=dict(
-                l=5,
-                r=5,
-                t=10,
-                b=5
-            ),
-
-            xaxis=dict(
-                visible=False,
-                range=[.2, 9.8]
-            ),
-
-            yaxis=dict(
-                visible=False,
-                range=[.2, 10]
-            ),
-
+            plot_bgcolor="rgba(7,22,39,.34)",
+            margin=dict(l=8, r=8, t=12, b=8),
+            xaxis=dict(visible=False, range=[.45,9.55], fixedrange=True),
+            yaxis=dict(visible=False, range=[1.0,9.65], fixedrange=True),
             legend=dict(
-                orientation="h",
-
-                x=.04,
-                y=.015,
-
-                font=dict(
-                    size=9,
-                    color="#C0D0E1"
-                ),
-
+                orientation="h", x=.5, xanchor="center", y=.015,
+                font=dict(size=10, color="#BFD1E4"),
                 bgcolor="rgba(0,0,0,0)"
             ),
-
             hoverlabel=dict(
                 bgcolor="#0A192B",
                 bordercolor="#4385FF",
@@ -2071,54 +1764,37 @@ setTimeout(
             )
         )
 
-
         st.plotly_chart(
-        apply_motion(fig),
+            apply_motion(fig),
             use_container_width=True,
-
-            config={
-                "displaylogo": False,
-                "displayModeBar": False
-            }
+            config={"displaylogo": False, "displayModeBar": False},
+            key="opening_refined_flow"
         )
 
+        st.caption("MODEL INPUT · 가구 재무정보")
+        c1, c2, c3, c4, c5 = st.columns(5)
 
-        st.caption(
-            "MODEL INPUT · 가구 재무정보"
-        )
-
-
-        s1, s2, s3, s4, s5 = st.columns(5)
-
-
-        with s1:
+        with c1:
             st.markdown("**소득**")
             st.caption("INCOME")
-
-        with s2:
+        with c2:
             st.markdown("**자산**")
             st.caption("ASSET")
-
-        with s3:
+        with c3:
             st.markdown("**유동성**")
             st.caption("LIQUIDITY")
-
-        with s4:
+        with c4:
             st.markdown("**소비**")
             st.caption("SPENDING")
-
-        with s5:
+        with c5:
             st.markdown("**:orange[부채구조]**")
             st.caption("DEBT STRUCTURE")
 
-
         st.caption(
-            "Conceptual interface · "
-            "위 점들은 실제 개별가구의 예측점수를 나타내지 않습니다."
+            "Conceptual interface · 위 점들은 실제 개별가구의 예측점수를 의미하지 않습니다."
         )
 
 
-    # ========================================================
     # OPENING BOTTOM
     # ========================================================
 
@@ -2655,9 +2331,113 @@ elif st.session_state.page == "DATA":
             st.rerun()
 
     with next_col:
-        if st.button("MODEL LAB →", width="stretch"):
+        if st.button("VALIDATION MAP →", width="stretch"):
+            st.session_state.page = "VALIDATION_MAP"
+            st.rerun()
+
+# ============================================================
+# 07. VALIDATION MAP · MODEL FITNESS REVIEW
+# ============================================================
+
+elif st.session_state.page == "VALIDATION_MAP":
+
+    motion_signal("MODEL FITNESS REVIEW · VALIDATION FRAMEWORK")
+    st.markdown(":blue[**03 / MODEL VALIDATION FRAMEWORK**]")
+    st.markdown("## 분석결과를 해석하기에 앞서, 모형의 :orange[적합성 검증 결과]를 살펴보겠습니다")
+    st.caption("MODEL FITNESS REVIEW · 12 VALIDATION DOMAINS · COMPREHENSIVE ASSESSMENT")
+    st.write(
+        "모델링 이후 수행한 적합성 검증 결과를 발표 흐름상 먼저 제시합니다. "
+        "타깃의 목적 부합성부터 표본, 변수, 모델링 방법, 검증방법과 예측 활용 가능성까지 "
+        "총 12개 영역을 종합적으로 점검했습니다."
+    )
+    st.write("")
+
+    v1, v2, v3 = st.columns(3)
+    with v1:
+        st.metric("충족", "2 / 12", "독립성 · 다중공선성")
+    with v2:
+        st.metric("조건부 충족", "9 / 12", "추가 보완 필요")
+    with v3:
+        st.metric("미확인", "1 / 12", "대안 대비 통계적 우월성")
+
+    validation_rows = [
+        ("종속변수의 목적 부합성", "조건부 충족", "30일 이상 연체 타깃 · 차기연도 연결"),
+        ("표본 충분성·대표성", "조건부 충족", "DEV/OOT 표본 구성 · 전국 단위 조사자료"),
+        ("모델링 방법의 타당성", "조건부 충족", "동일 조건 후보모형 비교 · Group CV"),
+        ("정보의 충분성", "조건부 충족", "재무·가구 특성 포함 · 세부 신용정보 부재"),
+        ("설명변수의 유의성", "조건부 충족", "순열 중요도 · SHAP 분석"),
+        ("변수 방향의 합리성", "조건부 충족", "SHAP 방향 · 실제 연체집단 비교"),
+        ("기본가정·관측치 독립성", "충족", "가구 단위 분할 · fold 간 가구 중복 방지"),
+        ("이상치·영향력 관측치", "조건부 충족", "윈저라이징 민감도 분석"),
+        ("다중공선성", "충족", "VIF 점검"),
+        ("검증방법의 타당성", "조건부 충족", "DEV OOF · 시간 OOT 검증"),
+        ("예측력·활용 가능성", "조건부 충족", "OOT AUC · KS · Lift · 상위 10% 포착률"),
+        ("대안 대비 통계적 우월성", "미확인", "일부 신뢰구간 0 포함 · 대안모형 우월성 미확정"),
+    ]
+
+    def validation_badge(verdict):
+        if verdict == "충족":
+            return '<span class="vb vb-ok">충족</span>'
+        if verdict == "미확인":
+            return '<span class="vb vb-na">미확인</span>'
+        return '<span class="vb vb-cond">조건부 충족</span>'
+
+    rows_html = ""
+    for idx, (area, verdict, evidence) in enumerate(validation_rows, 1):
+        rows_html += (
+            f'<div class="vt-row"><div class="vt-num">{idx:02d}</div>'
+            f'<div class="vt-area">{area}</div><div class="vt-status">{validation_badge(verdict)}</div>'
+            f'<div class="vt-evidence">{evidence}</div></div>'
+        )
+
+    st.markdown(
+        f"""
+        <style>
+        .vt-wrap{{margin-top:8px;border:1px solid rgba(67,133,255,.25);border-radius:12px;overflow:hidden;background:rgba(8,29,51,.72);}}
+        .vt-head,.vt-row{{display:grid;grid-template-columns:46px minmax(210px,.9fr) 126px minmax(360px,1.55fr);align-items:center;column-gap:12px;}}
+        .vt-head{{padding:11px 16px;background:rgba(67,133,255,.12);font-size:10px;font-weight:900;letter-spacing:.08em;color:#83A7CE;}}
+        .vt-row{{padding:9px 16px;border-top:1px solid rgba(130,170,210,.085);min-height:44px;}}
+        .vt-row:hover{{background:rgba(67,133,255,.055);}}
+        .vt-num{{font-size:10px;color:#577797;font-weight:800;}}
+        .vt-area{{font-size:13px;color:#F1F7FF;font-weight:750;white-space:nowrap;}}
+        .vt-status{{text-align:left;}}
+        .vt-evidence{{font-size:12px;color:#B8CBDE;line-height:1.35;white-space:nowrap;}}
+        .vb{{display:inline-block;min-width:94px;text-align:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:850;}}
+        .vb-ok{{color:#55E8D8;background:rgba(47,224,208,.09);border:1px solid rgba(47,224,208,.30);}}
+        .vb-cond{{color:#82B2FF;background:rgba(67,133,255,.09);border:1px solid rgba(67,133,255,.30);}}
+        .vb-na{{color:#FF9E87;background:rgba(255,112,77,.09);border:1px solid rgba(255,112,77,.30);}}
+        @media(max-width:1100px){{.vt-head,.vt-row{{grid-template-columns:36px minmax(170px,.9fr) 112px minmax(260px,1.4fr);column-gap:8px;}}.vt-area,.vt-evidence{{white-space:normal;}}}}
+        </style>
+        <div class="vt-wrap">
+          <div class="vt-head"><div>NO.</div><div>검증 영역</div><div>최종 판정</div><div>판정 근거</div></div>
+          {rows_html}
+        </div>
+        """, unsafe_allow_html=True
+    )
+
+    st.write("")
+    st.markdown(
+        '<div style="padding:14px 18px;border-left:3px solid #4385FF;background:rgba(67,133,255,.065);border-radius:0 9px 9px 0;">'
+        '<b style="color:#F7FAFF;">VALIDATION TAKEAWAY</b>&nbsp;&nbsp;'
+        '<span style="color:#BFD0E2;">가구 단위 누수 통제와 다중공선성 점검은 충족했으며, 나머지 영역은 데이터·검증 범위를 고려해 조건부로 해석했습니다. 대안모형 대비 통계적 우월성은 확정하지 않았습니다.</span>'
+        '</div>', unsafe_allow_html=True
+    )
+
+    st.write("")
+    back_col, empty_col, next_col = st.columns([1, 4, 1])
+    with back_col:
+        if st.button("← DATA", use_container_width=True):
+            st.session_state.page = "DATA"
+            st.rerun()
+    with next_col:
+        if st.button("MODEL LAB →", use_container_width=True):
             st.session_state.page = "MODEL"
             st.rerun()
+
+# ============================================================
+# 07. EXPLAIN · SHAP
+# ============================================================
+
 
 elif st.session_state.page == "MODEL":
 
@@ -2926,7 +2706,18 @@ elif st.session_state.page == "MODEL":
             delay=0.04
         )
 
+        # --------------------------------------------------------
+        # PRECISION - RECALL TRADE-OFF
+        # --------------------------------------------------------
 
+        st.markdown(
+            '<div style="margin:14px 0 20px 0;padding:16px 20px;border:1px solid rgba(67,133,255,.55);border-radius:10px;background:rgba(67,133,255,.10);">'
+            '<div style="font-size:13px;font-weight:800;letter-spacing:.08em;color:#6DA4FF;margin-bottom:8px;">PRECISION ↔ RECALL · TRADE-OFF</div>'
+            '<div style="font-size:16px;font-weight:600;line-height:1.6;color:#F2F7FF;">위험가구 포착 범위를 넓힐수록 <span style="color:#32C8FF;font-weight:800;">Recall ↑</span>, 오탐 증가로 <span style="color:#FF8A70;font-weight:800;">Precision ↓</span>할 수 있습니다.</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+        
         st.markdown(
             ":blue[**KEY FINDING · 핵심 결과**]"
         )
@@ -3072,6 +2863,111 @@ elif st.session_state.page == "MODEL":
 
 
     # ========================================================
+    # PERFORMANCE MATRIX · ALL MODEL METRICS
+    # ========================================================
+
+    st.write("")
+    st.markdown(":blue[**MODEL PERFORMANCE MATRIX · 지표별 성능 비교**]")
+    st.markdown("### 각 모델은 어떤 지표에서 강점을 보였는가?")
+    st.caption(
+        "셀의 밝기는 각 지표 내 상대적 성능을 나타내며, 숫자는 실제 DEV OOF 성능값입니다. "
+        "★는 해당 지표의 최고값입니다."
+    )
+
+    perf_models = ["Logistic", "Random Forest", "TabNet", "XGBoost"]
+    perf_metrics = [
+        "PR-AUC", "ROC-AUC", "Precision", "Recall",
+        "Balanced Acc.", "F1", "KS", "Gini"
+    ]
+
+    perf_values = np.array([
+        [0.1723, 0.8041, 0.1819, 0.4083, 0.6763, 0.2517, 0.4804, 0.6082],
+        [0.1900, 0.7997, 0.2472, 0.3289, 0.6493, 0.2823, 0.4840, 0.5993],
+        [0.1874, 0.8166, 0.2210, 0.3587, 0.6602, 0.2735, 0.5153, 0.6332],
+        [0.2203, 0.8034, 0.2630, 0.3438, 0.6573, 0.2980, 0.4877, 0.6067],
+    ])
+
+    # Normalize within each metric so the color intensity communicates
+    # relative performance without mixing metrics with different scales.
+    col_min = perf_values.min(axis=0)
+    col_max = perf_values.max(axis=0)
+    perf_norm = (perf_values - col_min) / np.where(
+        (col_max - col_min) == 0, 1, (col_max - col_min)
+    )
+
+    best_rows = perf_values.argmax(axis=0)
+    perf_text = []
+    for r in range(len(perf_models)):
+        row_text = []
+        for c in range(len(perf_metrics)):
+            prefix = "★  " if best_rows[c] == r else ""
+            row_text.append(f"{prefix}{perf_values[r, c]:.4f}")
+        perf_text.append(row_text)
+
+    fig_perf = go.Figure(
+        data=go.Heatmap(
+            z=perf_norm,
+            x=perf_metrics,
+            y=perf_models,
+            text=perf_text,
+            texttemplate="%{text}",
+            textfont=dict(size=16, color="#FFFFFF"),
+            colorscale=[
+                [0.00, "#0D2946"],
+                [0.74, "#173A5C"],
+                [0.94, "#245A86"],
+                [1.00, "#32C8FF"],
+            ],
+            showscale=False,
+            xgap=4,
+            ygap=4,
+            customdata=perf_values,
+            hovertemplate=(
+                "<b>%{y}</b><br>"
+                "%{x}<br>"
+                "DEV OOF = %{customdata:.4f}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig_perf.update_layout(
+        height=455,
+        margin=dict(l=25, r=15, t=35, b=25),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(
+            side="top",
+            tickfont=dict(size=15, color="#F2F7FC", family="Arial Black"),
+            fixedrange=True,
+        ),
+        yaxis=dict(
+            autorange="reversed",
+            tickfont=dict(size=15, color="#F2F7FC", family="Arial Black"),
+            fixedrange=True,
+        ),
+        hoverlabel=dict(
+            bgcolor="#0A192B",
+            bordercolor="#4385FF",
+            font_color="#FFFFFF",
+        ),
+    )
+
+    st.plotly_chart(
+        apply_motion(fig_perf),
+        use_container_width=True,
+        config={"displaylogo": False, "displayModeBar": False},
+    )
+
+    st.markdown(
+        "**PRIMARY METRIC · PR-AUC → :blue[XGBoost 0.2203 · BEST]**  "
+        "· XGBoost: PR-AUC · Precision · F1 최고  "
+        "· TabNet: ROC-AUC · KS · Gini 최고  "
+        "· Logistic: Recall · Balanced Accuracy 최고"
+    )
+
+
+    # ========================================================
     # MODEL BOTTOM
     # ========================================================
 
@@ -3127,10 +3023,10 @@ elif st.session_state.page == "MODEL":
     with back_col:
 
         if st.button(
-            "← OPENING",
+            "← VALIDATION MAP",
             use_container_width=True
         ):
-            st.session_state.page = "OPENING"
+            st.session_state.page = "VALIDATION_MAP"
             st.rerun()
 
 
@@ -3147,6 +3043,7 @@ elif st.session_state.page == "MODEL":
 # ============================================================
 # 07. EXPLAIN · SHAP
 # ============================================================
+
 
 
 elif st.session_state.page == "EXPLAIN":
@@ -5916,7 +5813,124 @@ body{
 
 
     # ========================================================
-    # 05 · KEY FINDING
+    # 05 · OOT CONFUSION MATRIX
+    # ========================================================
+
+    st.divider()
+
+    st.caption("04 / OOT CLASSIFICATION RESULT")
+    st.markdown("### 고정 임계값 :blue[0.7786] 적용 시 실제 분류 결과")
+    st.write(
+        "DEV OOF에서 확정한 임계값을 OOT에서 변경하지 않고 적용해, "
+        "2025년 실제 장기연체 여부와 모델의 분류 결과를 직접 비교했습니다."
+    )
+
+    tn, fp, fn, tp = 6200, 234, 120, 53
+    actual_positive = tp + fn
+    predicted_positive = tp + fp
+    recall_oot = tp / actual_positive
+    precision_oot = tp / predicted_positive
+    f1_oot = 2 * precision_oot * recall_oot / (precision_oot + recall_oot)
+
+    cm_k1, cm_k2, cm_k3, cm_k4 = st.columns(4)
+    with cm_k1:
+        st.metric("ACTUAL 30D+", f"{actual_positive:,}", "2025 OBSERVED")
+    with cm_k2:
+        st.metric("TRUE POSITIVE", f"{tp:,}", "CORRECTLY FLAGGED")
+    with cm_k3:
+        st.metric("RECALL", f"{recall_oot:.2%}", "53 / 173")
+    with cm_k4:
+        st.metric("PRECISION", f"{precision_oot:.2%}", "53 / 287")
+
+    st.write("")
+
+    # 의미별 색상을 사용해 TN 6,200이 나머지 셀의 시각적 대비를 압도하지 않도록 구성
+    cm_z = np.array([[0, 1], [2, 3]])
+    cm_counts = np.array([[tn, fp], [fn, tp]])
+    cm_labels = np.array([
+        [f"<b>TN</b><br>{tn:,}<br><span style='font-size:11px'>정상 → 정상</span>",
+         f"<b>FP</b><br>{fp:,}<br><span style='font-size:11px'>정상 → 위험</span>"],
+        [f"<b>FN</b><br>{fn:,}<br><span style='font-size:11px'>장기연체 → 정상</span>",
+         f"<b>TP</b><br>{tp:,}<br><span style='font-size:11px'>장기연체 → 위험</span>"]
+    ])
+
+    fig_cm = go.Figure(
+        go.Heatmap(
+            z=cm_z,
+            x=["정상 예측", "장기연체 위험 예측"],
+            y=["실제 정상", "실제 30일+ 연체"],
+            text=cm_labels,
+            texttemplate="%{text}",
+            textfont=dict(size=18, color="#F8FBFF"),
+            customdata=cm_counts,
+            colorscale=[
+                [0.00, "#153A5E"], [0.32, "#153A5E"],
+                [0.33, "#5A3A38"], [0.65, "#5A3A38"],
+                [0.66, "#263B59"], [0.82, "#263B59"],
+                [0.83, "#176C78"], [1.00, "#176C78"],
+            ],
+            zmin=0, zmax=3,
+            showscale=False,
+            xgap=5, ygap=5,
+            hovertemplate=(
+                "<b>%{y}</b><br>%{x}<br>가구 수 %{customdata:,}<extra></extra>"
+            ),
+        )
+    )
+
+    fig_cm.update_layout(
+        height=410,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(16,45,75,.30)",
+        margin=dict(l=35, r=25, t=25, b=55),
+        font=dict(color="#D9E8F7"),
+        xaxis=dict(
+            title=dict(text="MODEL PREDICTION", font=dict(size=12, color="#8FA9C3")),
+            side="bottom",
+            tickfont=dict(size=15, color="#EDF6FF"),
+            showgrid=False,
+        ),
+        yaxis=dict(
+            title=dict(text="ACTUAL OUTCOME", font=dict(size=12, color="#8FA9C3")),
+            autorange="reversed",
+            tickfont=dict(size=15, color="#EDF6FF"),
+            showgrid=False,
+        ),
+        hoverlabel=dict(bgcolor="#123252", bordercolor="#32C8FF", font_color="#FFFFFF"),
+    )
+
+    st.plotly_chart(
+        apply_motion(fig_cm),
+        use_container_width=True,
+        config={"displaylogo": False, "displayModeBar": False},
+    )
+
+    st.markdown(
+        f"""
+        <div style="margin-top:4px;padding:16px 19px;border-left:3px solid #32C8FF;
+                    background:rgba(50,200,255,.055);border-radius:0 8px 8px 0;">
+            <span style="color:#F8FBFF;font-weight:800;">
+                실제 장기연체 {actual_positive:,}가구 중
+                <span style="color:#32C8FF;">{tp:,}가구를 포착</span>
+            </span>
+            <span style="color:#9DB4CC;">
+                &nbsp;·&nbsp; Recall {recall_oot:.2%}
+                &nbsp;·&nbsp; Precision {precision_oot:.2%}
+                &nbsp;·&nbsp; F1 {f1_oot:.4f}
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.caption(
+        "TN 6,200 · FP 234 · FN 120 · TP 53  |  "
+        "Threshold 0.7786은 DEV OOF에서 확정 후 OOT에서 고정"
+    )
+
+
+    # ========================================================
+    # 06 · KEY FINDING
     # ========================================================
 
     st.divider()
@@ -5947,7 +5961,7 @@ body{
 
 
     # ========================================================
-    # 06 · NAVIGATION
+    # 07 · NAVIGATION
     # ========================================================
 
     st.write("")
@@ -6547,16 +6561,89 @@ elif st.session_state.page == "SCREEN":
 
     st.write("")
 
-    back_col, empty_col = st.columns(
-        [1, 5]
-    )
+    back_col, empty_col, next_col = st.columns([1, 4, 1])
 
     with back_col:
-
-        if st.button(
-            "← VALIDATE",
-            use_container_width=True
-        ):
+        if st.button("← VALIDATE", use_container_width=True):
             st.session_state.page = "VALIDATE"
             st.rerun()
+
+    with next_col:
+        if st.button("CONCLUSION →", use_container_width=True):
+            st.session_state.page = "CONCLUSION"
+            st.rerun()
             
+
+# ============================================================
+# 11. CONCLUSION · KEY TAKEAWAYS
+# ============================================================
+
+elif st.session_state.page == "CONCLUSION":
+
+    motion_signal("KEY TAKEAWAYS · FINAL")
+    st.markdown(":blue[**09 / CONCLUSION**]")
+    st.markdown("## 이번 분석이 보여준 :orange[핵심 결론]")
+    st.caption("FINDING · EVIDENCE · MODEL ROLE · LIMITATIONS & NEXT STEP")
+    st.write("")
+
+    # 핵심 결론을 먼저 제시
+    st.markdown(
+        """
+        <div style="padding:22px 24px;border:1px solid rgba(50,200,255,.34);border-radius:13px;background:linear-gradient(135deg,rgba(67,133,255,.10),rgba(50,200,255,.045));">
+          <div style="font-size:11px;font-weight:900;letter-spacing:.11em;color:#32C8FF;">FINAL TAKEAWAY</div>
+          <div style="font-size:25px;line-height:1.42;font-weight:900;color:#F8FBFF;margin-top:8px;">장기연체 위험은 단순한 부채 규모보다 <span style="color:#FF8A70;">재무적 완충여력과 부채구조</span>를 함께 볼 때 더 잘 구분되었습니다.</div>
+          <div style="font-size:14px;line-height:1.7;color:#BFD0E2;margin-top:10px;">가구의 현재 재무정보를 활용해 다음 해 장기연체 가능성이 높은 가구를 우선 선별하는 보조적 위험관리 도구의 가능성을 확인했습니다.</div>
+        </div>
+        """, unsafe_allow_html=True
+    )
+
+    st.write("")
+    r1, r2, r3 = st.columns(3, gap="large")
+    with r1:
+        st.markdown(
+            '<div style="min-height:220px;padding:21px;border:1px solid rgba(67,133,255,.30);border-radius:12px;background:rgba(16,43,73,.68);">'
+            '<div style="color:#6DA4FF;font-weight:900;letter-spacing:.08em;font-size:11px;">01 · OBSERVED PROFILE</div>'
+            '<h3 style="color:#F8FBFF;line-height:1.35;margin-bottom:10px;">실제 장기연체가구는<br>완충여력이 더 낮았습니다.</h3>'
+            '<p style="color:#BFD0E2;line-height:1.65;font-size:13px;">일반연체가구보다 자산·유동자산·저축 수준이 낮았고, 무담보 위험부채와 개인·직장 차입 구조에서도 차이가 나타났습니다.</p>'
+            '</div>', unsafe_allow_html=True)
+    with r2:
+        st.markdown(
+            '<div style="min-height:220px;padding:21px;border:1px solid rgba(50,200,255,.30);border-radius:12px;background:rgba(16,43,73,.68);">'
+            '<div style="color:#32C8FF;font-weight:900;letter-spacing:.08em;font-size:11px;">02 · MODEL EVIDENCE</div>'
+            '<h3 style="color:#F8FBFF;line-height:1.35;margin-bottom:10px;">XGBoost도 여러 재무정보를<br>종합적으로 활용했습니다.</h3>'
+            '<p style="color:#BFD0E2;line-height:1.65;font-size:13px;">SHAP에서 자산이 가장 높은 중요도를 보였고, 소득·유동성·소비·부채·신용대출이 함께 주요 변수로 나타났습니다.</p>'
+            '</div>', unsafe_allow_html=True)
+    with r3:
+        st.markdown(
+            '<div style="min-height:220px;padding:21px;border:1px solid rgba(255,112,77,.30);border-radius:12px;background:rgba(16,43,73,.68);">'
+            '<div style="color:#FF9E87;font-weight:900;letter-spacing:.08em;font-size:11px;">03 · PRACTICAL ROLE</div>'
+            '<h3 style="color:#F8FBFF;line-height:1.35;margin-bottom:10px;">확정 판정보다<br>고위험가구 우선 선별</h3>'
+            '<p style="color:#BFD0E2;line-height:1.65;font-size:13px;">고정 임계값의 포착에는 한계가 있었지만, 위험점수 상위 10%에 실제 장기연체가구의 49.1%가 포함돼 우선순위화 가능성을 보였습니다.</p>'
+            '</div>', unsafe_allow_html=True)
+
+    st.divider()
+    st.caption("LIMITATIONS · NEXT STEP")
+    st.markdown("### 결과를 실제 활용으로 연결하기 위해 남은 과제")
+    l1, l2, l3, l4 = st.columns(4)
+    with l1:
+        st.metric("DATA", "신용정보 제약", "세부 거래·상환이력 부재")
+    with l2:
+        st.metric("IMBALANCE", "약 3%", "목적별 임계값 필요")
+    with l3:
+        st.metric("TEMPORAL", "추가 검증", "OOT 성능 변화")
+    with l4:
+        st.metric("INTERPRETATION", "연관성", "인과관계 아님")
+
+    st.markdown(
+        '<div style="margin-top:10px;padding:14px 18px;border-left:3px solid #4385FF;background:rgba(67,133,255,.06);border-radius:0 9px 9px 0;color:#BFD0E2;line-height:1.65;">'
+        '<b style="color:#F8FBFF;">NEXT STEP</b>&nbsp;&nbsp;보다 다양한 신용정보와 추가 시계열 데이터를 활용하고 검증방법을 보완해 모델의 안정성과 실제 활용 가능성을 확인할 필요가 있습니다.'
+        '</div>', unsafe_allow_html=True
+    )
+
+    st.write("")
+    back_col, empty_col = st.columns([1, 5])
+    with back_col:
+        if st.button("← SCREEN", use_container_width=True):
+            st.session_state.page = "SCREEN"
+            st.rerun()
+
